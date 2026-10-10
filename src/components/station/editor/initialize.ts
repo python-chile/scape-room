@@ -5,6 +5,11 @@ import {
   setErrorHelpPreference,
 } from "./python-error-help";
 import { createPythonRunner } from "./runner";
+import {
+  getSuccessSoundPreference,
+  prepareSuccessSound,
+  setSuccessSoundPreference,
+} from "./success-sound";
 import { initializePythonTerminal } from "./terminal";
 import type { Challenge } from "./types";
 import { createPythonEditorUi } from "./ui";
@@ -73,14 +78,30 @@ function initializePythonEditor(editor: HTMLElement): void {
   try {
     const elements = getPythonEditorElements(editor);
 
+    const soundToggle = editor.querySelector<HTMLInputElement>(
+      "[data-python-success-sound-toggle]",
+    );
+
+    if (soundToggle) {
+      soundToggle.checked = getSuccessSoundPreference();
+
+      soundToggle.addEventListener(
+        "change",
+        () => {
+          setSuccessSoundPreference(soundToggle.checked);
+          prepareSuccessSound();
+        },
+        {
+          signal: listeners.signal,
+        },
+      );
+    }
+
     const starterCode = editor.dataset.pythonStarterCode ?? "";
-
     const challenge = parseChallenge(editor.dataset.pythonChallenge);
-
     const hintCount = moveHintIntoEditor(editor, elements.hintSlot);
 
     elements.hintCount.textContent = String(hintCount);
-
     elements.hintCount.hidden = hintCount === 0;
     elements.emptyHints.hidden = hintCount > 0;
 
@@ -105,7 +126,6 @@ function initializePythonEditor(editor: HTMLElement): void {
     const errorHelpEnabled = getErrorHelpPreference();
 
     elements.errorHelpToggle.checked = errorHelpEnabled;
-
     ui.setErrorHelpEnabled(errorHelpEnabled);
 
     const runner = createPythonRunner({
@@ -154,6 +174,7 @@ function initializePythonEditor(editor: HTMLElement): void {
           return;
         }
 
+        prepareSuccessSound();
         void runner.run();
       },
       {
@@ -175,7 +196,6 @@ function initializePythonEditor(editor: HTMLElement): void {
         });
 
         ui.resetCode(executionCancelled ? false : runner.isReady());
-
         editorView.focus();
       },
       {

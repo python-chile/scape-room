@@ -16,6 +16,7 @@ import {
 } from "./protocol";
 import type { Challenge } from "./types";
 import type { PythonEditorUi } from "./ui";
+import { playSuccessSound } from "./success-sound";
 
 type PythonRunnerOptions = {
   challenge?: Challenge;
@@ -147,6 +148,7 @@ export function createPythonRunner({
     if (passed) {
       completeRoom();
       celebrate();
+      playSuccessSound();
     }
 
     if (passed && challenge?.successHref) {
