@@ -8,6 +8,11 @@ import { createPythonRunner } from "./runner";
 import { initializePythonTerminal } from "./terminal";
 import type { Challenge } from "./types";
 import { createPythonEditorUi } from "./ui";
+import {
+  getSavedSolution,
+  getSolutionStorageKey,
+  saveSolution,
+} from "./solution-storage";
 
 const INITIALIZED_VALUE = "true";
 
@@ -77,6 +82,12 @@ function initializePythonEditor(editor: HTMLElement): void {
 
     const challenge = parseChallenge(editor.dataset.pythonChallenge);
 
+    const solutionStorageKey = getSolutionStorageKey(editor);
+
+    const initialCode = challenge
+      ? (getSavedSolution(solutionStorageKey) ?? starterCode)
+      : starterCode;
+
     const hintCount = moveHintIntoEditor(editor, elements.hintSlot);
 
     elements.hintCount.textContent = String(hintCount);
@@ -86,7 +97,7 @@ function initializePythonEditor(editor: HTMLElement): void {
 
     const editorView = createPythonCodeEditor(
       elements.codeElement,
-      starterCode,
+      initialCode,
       {
         onRun() {
           elements.runButton.click();
@@ -112,6 +123,9 @@ function initializePythonEditor(editor: HTMLElement): void {
       challenge,
       elements,
       getCode: () => editorView.state.doc.toString(),
+      onChallengePassed(code) {
+        saveSolution(solutionStorageKey, code);
+      },
       ui,
     });
 

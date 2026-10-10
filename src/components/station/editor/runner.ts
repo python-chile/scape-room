@@ -21,6 +21,7 @@ type PythonRunnerOptions = {
   challenge?: Challenge;
   elements: PythonEditorElements;
   getCode: () => string;
+  onChallengePassed: (code: string) => void;
   ui: PythonEditorUi;
 };
 
@@ -41,6 +42,7 @@ export function createPythonRunner({
   challenge,
   elements,
   getCode,
+  onChallengePassed,
   ui,
 }: PythonRunnerOptions): PythonRunnerController {
   const listeners = new AbortController();
@@ -48,6 +50,7 @@ export function createPythonRunner({
   let isReady = false;
   let isDestroyed = false;
   let activeRequestId: string | undefined;
+  let activeCode: string | undefined;
   let timeoutId: number | undefined;
 
   function clearRunTimeout(): void {
@@ -81,6 +84,7 @@ export function createPythonRunner({
     clearRunTimeout();
 
     activeRequestId = undefined;
+    activeCode = undefined;
     isReady = false;
 
     elements.runButton.disabled = true;
@@ -94,6 +98,7 @@ export function createPythonRunner({
     clearRunTimeout();
 
     activeRequestId = undefined;
+    activeCode = undefined;
 
     ui.showResult(result, status);
   }
@@ -128,6 +133,8 @@ export function createPythonRunner({
       return;
     }
 
+    const executedCode = activeCode;
+
     finishRun(message.output, message.status);
 
     if (message.chart) {
@@ -145,6 +152,10 @@ export function createPythonRunner({
     ui.showFeedback(feedback, passed);
 
     if (passed) {
+      if (executedCode !== undefined) {
+        onChallengePassed(executedCode);
+      }
+
       completeRoom();
       celebrate();
     }
@@ -236,8 +247,10 @@ export function createPythonRunner({
     }
 
     const requestId = crypto.randomUUID();
+    const code = getCode();
 
     activeRequestId = requestId;
+    activeCode = code;
 
     ui.prepareRun();
 
@@ -265,7 +278,7 @@ export function createPythonRunner({
       postMessage({
         type: "run-python",
         requestId,
-        code: getCode(),
+        code,
         challenge,
         dataset,
       });
@@ -276,6 +289,7 @@ export function createPythonRunner({
 
       clearRunTimeout();
       activeRequestId = undefined;
+      activeCode = undefined;
 
       ui.showUnexpectedError(error);
     }
@@ -310,6 +324,7 @@ export function createPythonRunner({
     isDestroyed = true;
     isReady = false;
     activeRequestId = undefined;
+    activeCode = undefined;
 
     clearRunTimeout();
     listeners.abort();
